@@ -9,11 +9,20 @@
     const res = await fetch('olympic.csv');
     const csv = await res.text();
 
-    // Parse CSV using PapaParse
     const parsed = Papa.parse(csv, { header: true });
-    const data = { name: 'flare', children: [] };
+    const data = { name: 'olympic', children: [] };
 
     parsed.data.forEach((entry) => {
+      let hasNaN = false;
+      for (let key in entry) {
+        if ((entry[key] === 'NaN') | (entry[key] === '')) {
+          hasNaN = true;
+          break;
+        }
+      }
+      if (hasNaN) {
+        return;
+      }
       const year = entry.Year;
       const sport = entry.Sport;
       const country = entry.Country;
