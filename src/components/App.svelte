@@ -221,6 +221,16 @@
     document.querySelector('#chart-container').appendChild(svg);
   }
 
+  function getYAxisTitleText(depth) {
+    if (depth == 0) {
+      return 'Sport';
+    } else if (depth == 1) {
+      return 'Year';
+    } else if (depth == 2) {
+      return '3';
+    }
+  }
+
   function _chart(d3, width, height, x, root, up, xAxis, yAxis, down) {
     const svg = d3
       .create('svg')
@@ -243,7 +253,16 @@
 
     svg.append('g').call(xAxis);
 
-    svg.append('g').call(yAxis);
+    // Create separate y-axis labels for each layer
+    svg
+      .append('text')
+      .attr('class', 'y-axis-title')
+      .attr('text-anchor', 'middle')
+      .attr('transform', 'rotate(-90)')
+      .attr('x', -height / 2)
+      .attr('y', 20) // Adjust position as needed
+      .text(getYAxisTitleText(root.depth))
+      .style('font-size', '20px');
 
     down(svg, root);
 
