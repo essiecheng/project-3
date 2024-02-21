@@ -29,6 +29,7 @@
       const athlete = entry.Athlete;
       const gender = entry.Gender;
       const medal = entry.Medal;
+      const event = entry.Event;
 
       let sportNode = data.children.find((y) => y.name === sport);
       if (!sportNode) {
@@ -77,10 +78,14 @@
         athleteNode.children.push(medalNode);
       }
 
-      // Increase the count of the medal type
-      medalNode.value = (medalNode.value || 0) + 1;
-    });
+      let eventNode = medalNode.children.find((c) => c.name === event);
+      if (!eventNode) {
+        eventNode = { name: event, children: [] };
+        medalNode.children.push(eventNode);
+      }
 
+      eventNode.value = (eventNode.value || 0) + 1;
+    });
     return data;
   }
 
@@ -95,7 +100,7 @@
 
   function createChart() {
     const width = 1500;
-    const height = 1200;
+    const height = 890;
     const marginTop = 30;
     const marginRight = 30;
     const marginBottom = 0;
@@ -370,9 +375,7 @@
           // Show tooltip on mouseover
           const tooltip = document.querySelector('.tooltip');
           let tooltipContent = '';
-          if (d.depth === 0) {
-            tooltipContent = `Sport: ${d.data.name}`;
-          } else if (d.depth === 1) {
+          if (d.depth === 1) {
             tooltipContent = `
               Sport: ${d.data.name}`;
           } else if (d.depth === 2) {
@@ -395,16 +398,25 @@
               Sport: ${d.parent.parent.parent.parent.data.name}<br>
               Year: ${d.parent.parent.parent.data.name}<br>
               Country: ${d.parent.parent.data.name}<br>
-              Gender: ${d.data.parent.name}<br>
+              Gender: ${d.parent.data.name}<br>
               Athlete: ${d.data.name}`;
-          } else {
+          } else if (d.depth === 6) {
             tooltipContent = `
               Sport: ${d.parent.parent.parent.parent.parent.data.name}<br>
               Year: ${d.parent.parent.parent.parent.data.name}<br>
               Country: ${d.parent.parent.parent.data.name}<br>
-              Gender: ${d.data.parent.parent.name}<br>
-              Athlete: ${d.data.parent.name}<br>
+              Gender: ${d.parent.parent.data.name}<br>
+              Athlete: ${d.parent.data.name}<br>
               Medal: ${d.data.name}`;
+          } else {
+            tooltipContent = `
+              Sport: ${d.parent.parent.parent.parent.parent.parent.data.name}<br>
+              Year: ${d.parent.parent.parent.parent.parent.data.name}<br>
+              Country: ${d.parent.parent.parent.parent.data.name}<br>
+              Gender: ${d.parent.parent.parent.data.name}<br>
+              Athlete: ${d.parent.parent.data.name}<br>
+              Medal: ${d.parent.data.name}<br>
+              Event: ${d.data.name}`;
           }
 
           tooltip.innerHTML = tooltipContent;
