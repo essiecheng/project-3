@@ -27,6 +27,7 @@
       const sport = entry.Sport;
       const country = entry.Country;
       const athlete = entry.Athlete;
+      const gender = entry.Gender;
       const medal = entry.Medal;
 
       let sportNode = data.children.find((y) => y.name === sport);
@@ -47,10 +48,16 @@
         yearNode.children.push(countryNode);
       }
 
-      let athleteNode = countryNode.children.find((c) => c.name === athlete);
+      let genderNode = countryNode.children.find((c) => c.name === gender);
+      if (!genderNode) {
+        genderNode = { name: gender, children: [] };
+        countryNode.children.push(genderNode);
+      }
+
+      let athleteNode = genderNode.children.find((c) => c.name === athlete);
       if (!athleteNode) {
         athleteNode = { name: athlete, children: [] };
-        countryNode.children.push(athleteNode);
+        genderNode.children.push(athleteNode);
       }
 
       // Group by medal type
@@ -88,11 +95,11 @@
 
   function createChart() {
     const width = 1500;
-    const height = 800;
+    const height = 1200;
     const marginTop = 30;
     const marginRight = 30;
     const marginBottom = 0;
-    const marginLeft = 100;
+    const marginLeft = 150;
     const barStep = 27;
 
     const root = _root(d3, data);
@@ -358,7 +365,62 @@
         .data(d.children)
         .join('g')
         .attr('cursor', (d) => (!d.children ? null : 'pointer'))
-        .on('click', (event, d) => down(svg, d));
+        .on('click', (event, d) => down(svg, d))
+        .on('mouseover', function (event, d) {
+          // Show tooltip on mouseover
+          const tooltip = document.querySelector('.tooltip');
+          let tooltipContent = '';
+          if (d.depth === 0) {
+            tooltipContent = `Sport: ${d.data.name}`;
+          } else if (d.depth === 1) {
+            tooltipContent = `
+              Sport: ${d.data.name}`;
+          } else if (d.depth === 2) {
+            tooltipContent = `
+              Sport: ${d.parent.data.name}<br>
+              Year: ${d.data.name}`;
+          } else if (d.depth === 3) {
+            tooltipContent = `
+              Sport: ${d.parent.parent.data.name}<br>
+              Year: ${d.parent.data.name}<br>
+              Country: ${d.data.name}`;
+          } else if (d.depth === 4) {
+            tooltipContent = `
+              Sport: ${d.parent.parent.parent.data.name}<br>
+              Year: ${d.parent.parent.data.name}<br>
+              Country: ${d.parent.data.name}<br>
+              Gender: ${d.data.name}`;
+          } else if (d.depth === 5) {
+            tooltipContent = `
+              Sport: ${d.parent.parent.parent.parent.data.name}<br>
+              Year: ${d.parent.parent.parent.data.name}<br>
+              Country: ${d.parent.parent.data.name}<br>
+              Gender: ${d.data.parent.name}<br>
+              Athlete: ${d.data.name}`;
+          } else {
+            tooltipContent = `
+              Sport: ${d.parent.parent.parent.parent.parent.data.name}<br>
+              Year: ${d.parent.parent.parent.parent.data.name}<br>
+              Country: ${d.parent.parent.parent.data.name}<br>
+              Gender: ${d.data.parent.parent.name}<br>
+              Athlete: ${d.data.parent.name}<br>
+              Medal: ${d.data.name}`;
+          }
+
+          tooltip.innerHTML = tooltipContent;
+          tooltip.style.opacity = 1;
+        })
+        .on('mousemove', function (event) {
+          // Position tooltip relative to the mouse cursor
+          const tooltip = document.querySelector('.tooltip');
+          tooltip.style.left = event.pageX + 'px';
+          tooltip.style.top = event.pageY - window.scrollY + 'px';
+        })
+        .on('mouseleave', function () {
+          // Hide tooltip on mouseleave
+          const tooltip = document.querySelector('.tooltip');
+          tooltip.style.opacity = 0;
+        });
 
       bar
         .append('text')
@@ -402,5 +464,19 @@
   <script
     src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.0/papaparse.min.js"
   ></script>
-  <div id="chart-container"></div>
+  <div id="chart-container">
+    <div class="tooltip" style="opacity: 0;"></div>
+  </div>
 </main>
+
+<style>
+  /* Tooltip styles */
+  .tooltip {
+    position: absolute;
+    background-color: white;
+    border: 1px solid #aaa;
+    padding: 10px;
+    pointer-events: none;
+    z-index: 999; /* Ensure the tooltip appears on top */
+  }
+</style>
