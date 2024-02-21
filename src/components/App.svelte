@@ -26,24 +26,31 @@
       const year = entry.Year;
       const sport = entry.Sport;
       const country = entry.Country;
+      const athlete = entry.Athlete;
       const medal = entry.Medal;
 
-      let yearNode = data.children.find((y) => y.name === year);
-      if (!yearNode) {
-        yearNode = { name: year, children: [] };
-        data.children.push(yearNode);
-      }
-
-      let sportNode = yearNode.children.find((s) => s.name === sport);
+      let sportNode = data.children.find((y) => y.name === sport);
       if (!sportNode) {
         sportNode = { name: sport, children: [] };
-        yearNode.children.push(sportNode);
+        data.children.push(sportNode);
       }
 
-      let countryNode = sportNode.children.find((c) => c.name === country);
+      let yearNode = sportNode.children.find((s) => s.name === year);
+      if (!yearNode) {
+        yearNode = { name: year, children: [] };
+        sportNode.children.push(yearNode);
+      }
+
+      let countryNode = yearNode.children.find((c) => c.name === country);
       if (!countryNode) {
         countryNode = { name: country, children: [] };
-        sportNode.children.push(countryNode);
+        yearNode.children.push(countryNode);
+      }
+
+      let athleteNode = countryNode.children.find((c) => c.name === athlete);
+      if (!athleteNode) {
+        athleteNode = { name: athlete, children: [] };
+        countryNode.children.push(athleteNode);
       }
 
       // Group by medal type
@@ -57,10 +64,10 @@
       }
 
       // Find or create the medal type node
-      let medalNode = countryNode.children.find((m) => m.name === medalType);
+      let medalNode = athleteNode.children.find((m) => m.name === medalType);
       if (!medalNode) {
         medalNode = { name: medalType, children: [] };
-        countryNode.children.push(medalNode);
+        athleteNode.children.push(medalNode);
       }
 
       // Increase the count of the medal type
