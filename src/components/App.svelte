@@ -356,6 +356,21 @@
     return d3.scaleOrdinal([true, false], ['steelblue', '#aaa']);
   }
 
+  let hoveredBar = null;
+
+  function handleBarHover(bar) {
+    hoveredBar = bar;
+    // Change fill color when hovered
+    d3.select(bar).select('rect').attr('fill', 'coral');
+  }
+
+  // Function to handle mouseleave event on bars
+  function handleBarMouseLeave(bar) {
+    hoveredBar = null;
+    // Restore fill color when mouse leaves
+    d3.select(bar).select('rect').attr('fill', 'steelblue');
+  }
+
   function _bar(marginTop, barStep, barPadding, marginLeft, x) {
     return function bar(svg, down, d, selector) {
       const g = svg
@@ -365,13 +380,15 @@
         .attr('text-anchor', 'end')
         .style('font', '10px sans-serif');
 
-      const bar = g
-        .selectAll('g')
+      const bars = g
+        .selectAll('.bar-group')
         .data(d.children)
         .join('g')
+        .attr('class', 'bar-group')
         .attr('cursor', (d) => (!d.children ? null : 'pointer'))
         .on('click', (event, d) => down(svg, d))
         .on('mouseover', function (event, d) {
+          handleBarHover(this);
           // Show tooltip on mouseover
           const tooltip = document.querySelector('.tooltip');
           let tooltipContent = '';
@@ -429,23 +446,26 @@
           tooltip.style.top = event.pageY - window.scrollY + 'px';
         })
         .on('mouseleave', function () {
+          handleBarMouseLeave(this);
           // Hide tooltip on mouseleave
           const tooltip = document.querySelector('.tooltip');
           tooltip.style.opacity = 0;
         });
 
-      bar
+      bars
         .append('text')
+        .attr('class', 'bar-label')
         .attr('x', marginLeft - 6)
         .attr('y', (barStep * (1 - barPadding)) / 2)
         .attr('dy', '.35em')
         .text((d) => d.data.name);
 
-      bar
+      bars
         .append('rect')
-        .attr('x', x(0))
-        .attr('width', (d) => x(d.value) - x(0))
-        .attr('height', barStep * (1 - barPadding));
+        .attr('x', marginLeft)
+        .attr('width', (d) => x(d.value))
+        .attr('height', barStep * (1 - barPadding))
+        .attr('fill', (d) => (d === hoveredBar ? 'coral' : 'steelblue'));
 
       return g;
     };
