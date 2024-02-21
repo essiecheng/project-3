@@ -4,6 +4,9 @@
   import Papa from 'papaparse';
 
   let data;
+  let gold = true;
+  let silver = true;
+  let bronze = true;
 
   async function convertCsvToJson() {
     const res = await fetch('olympic.csv');
@@ -89,19 +92,70 @@
     return data;
   }
 
+  function queryData() {
+    let filteredData = JSON.parse(JSON.stringify(data)); // Clone original data
+
+    // Filter out gold medals if the corresponding checkbox is unchecked
+    if (!gold) {
+      filteredData = filterMedal(filteredData, 'Gold');
+    }
+
+    // Filter out silver medals if the corresponding checkbox is unchecked
+    if (!silver) {
+      filteredData = filterMedal(filteredData, 'Silver');
+    }
+
+    // Filter out bronze medals if the corresponding checkbox is unchecked
+    if (!bronze) {
+      filteredData = filterMedal(filteredData, 'Bronze');
+    }
+
+    return filteredData;
+  }
+
+  // Helper function to filter out specific medal type
+  function filterMedal(data, medalType) {
+    return {
+      ...data,
+      children: data.children.map((sportNode) => ({
+        ...sportNode,
+        children: sportNode.children.map((yearNode) => ({
+          ...yearNode,
+          children: yearNode.children.map((countryNode) => ({
+            ...countryNode,
+            children: countryNode.children.map((genderNode) => ({
+              ...genderNode,
+              children: genderNode.children.map((athleteNode) => ({
+                ...athleteNode,
+                children: athleteNode.children.filter(
+                  (medalNode) => medalNode.name !== medalType
+                ),
+              })),
+            })),
+          })),
+        })),
+      })),
+    };
+  }
+
+  function updateChart() {
+    const filteredData = queryData();
+    svg.remove(); // Remove existing chart
+    createChart(filteredData); // Create chart with filtered data
+  }
+
   let svg;
   let y; // Define y scale
 
   onMount(async () => {
     data = await convertCsvToJson(); // Await the JSON data
-    console.log(data);
     createChart(data);
   });
 
-  function createChart() {
+  function createChart(data) {
     const width = 1500;
     const height = 890;
-    const marginTop = 30;
+    const marginTop = 50;
     const marginRight = 30;
     const marginBottom = 0;
     const marginLeft = 150;
@@ -192,6 +246,16 @@
     svg.append('g').call(yAxis);
 
     down(svg, root);
+
+    svg
+      .append('text')
+      .attr('class', 'x-axis-title')
+      .attr('text-anchor', 'middle')
+      .attr('x', width / 2)
+      .attr('y', height / 35) // Adjust position as needed
+      .text('# Count') //Medals Won (🥇 + 🥈 + 🥉)
+      .style('font-size', '20px')
+      .style('font-family', 'Arial');
 
     return svg.node();
   }
@@ -353,7 +417,7 @@
   }
 
   function _color(d3) {
-    return d3.scaleOrdinal([true, false], ['steelblue', '#aaa']);
+    return d3.scaleOrdinal([true, false], ['#66BD48', '#66BD48']);
   }
 
   let hoveredBar = null;
@@ -361,14 +425,14 @@
   function handleBarHover(bar) {
     hoveredBar = bar;
     // Change fill color when hovered
-    d3.select(bar).select('rect').attr('fill', 'coral');
+    d3.select(bar).select('rect').attr('fill', 'red');
   }
 
   // Function to handle mouseleave event on bars
   function handleBarMouseLeave(bar) {
     hoveredBar = null;
     // Restore fill color when mouse leaves
-    d3.select(bar).select('rect').attr('fill', 'steelblue');
+    d3.select(bar).select('rect').attr('fill', '#66BD48');
   }
 
   function _bar(marginTop, barStep, barPadding, marginLeft, x) {
@@ -454,6 +518,15 @@
 
       bars
         .append('text')
+        .attr('class', 'bar-value')
+        .attr('x', (d) => x(d.value) + 5) // Position it at the end of each bar
+        .attr('y', (barStep * (1 - barPadding)) / 2)
+        .attr('dy', '.35em')
+        .attr('text-anchor', 'start')
+        .text((d) => d.value);
+
+      bars
+        .append('text')
         .attr('class', 'bar-label')
         .attr('x', marginLeft - 6)
         .attr('y', (barStep * (1 - barPadding)) / 2)
@@ -465,7 +538,7 @@
         .attr('x', marginLeft)
         .attr('width', (d) => x(d.value))
         .attr('height', barStep * (1 - barPadding))
-        .attr('fill', (d) => (d === hoveredBar ? 'coral' : 'steelblue'));
+        .attr('fill', (d) => (d === hoveredBar ? 'red' : '#66BD48'));
 
       return g;
     };
@@ -492,23 +565,72 @@
 </script>
 
 <main>
-  <h1>Hierarchical bar chart</h1>
+  <h1>Medals and Memories: Charting Olympic Greatness</h1>
+  <h3>
+    This chart contains information about medals won for each sport, year,
+    country, and gender, between the period of 1976-2008 in the Summer Olympics.
+  </h3>
+  <p>Click a blue bar to drill down and click the background to go back up.</p>
   <script
     src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.0/papaparse.min.js"
   ></script>
-  <div id="chart-container">
+  <div id="chart-container" style="width: 100%; height: 100;">
     <div class="tooltip" style="opacity: 0;"></div>
+    <div>
+      <label>
+        <input type="checkbox" bind:checked={gold} on:change={updateChart} /> Gold
+      </label>
+      <label>
+        <input type="checkbox" bind:checked={silver} on:change={updateChart} /> Silver
+      </label>
+      <label>
+        <input type="checkbox" bind:checked={bronze} on:change={updateChart} /> Bronze
+      </label>
+    </div>
   </div>
 </main>
 
 <style>
-  /* Tooltip styles */
   .tooltip {
     position: absolute;
     background-color: white;
     border: 1px solid #aaa;
     padding: 10px;
     pointer-events: none;
-    z-index: 999; /* Ensure the tooltip appears on top */
+    z-index: 999;
+  }
+
+  #chart-container {
+    background-image: url('logo.png');
+    background-size: 37% 45%; /* Ensure the image covers the entire container */
+    background-repeat: no-repeat;
+    background-position: bottom right;
+    width: 100%;
+    height: 100%;
+    position: relative;
+    border: 1px solid #000;
+    box-sizing: border-box;
+  }
+
+  h1 {
+    /* font-family: 'Oswald'; */
+    font-size: 78px;
+    font-weight: 500;
+    text-transform: uppercase;
+    line-height: 1;
+  }
+
+  h3 {
+    font-family: 'Arial';
+    letter-spacing: 0.55px;
+    font-size: 20px;
+    line-height: 28px;
+  }
+
+  p {
+    font-family: 'Arial', sans-serif;
+    letter-spacing: 0.55px;
+    font-size: 16px;
+    line-height: 28px;
   }
 </style>
