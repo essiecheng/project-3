@@ -168,7 +168,6 @@
     const y = d3.scaleBand().range([0, height]).padding(_barPadding(barStep));
 
     const xAxis = _xAxis(marginTop, d3, x, width);
-    const yAxis = _yAxis(marginLeft, marginTop, height, marginBottom);
 
     const stack = _stack(x, barStep);
     const stagger = _stagger(x, barStep);
@@ -204,7 +203,6 @@
         barStep
       ),
       xAxis,
-      yAxis,
       _down(
         d3,
         duration,
@@ -222,16 +220,24 @@
   }
 
   function getYAxisTitleText(depth) {
-    if (depth == 0) {
+    if (depth == 1) {
       return 'Sport';
-    } else if (depth == 1) {
-      return 'Year';
     } else if (depth == 2) {
-      return '3';
+      return 'Year';
+    } else if (depth == 3) {
+      return 'Country';
+    } else if (depth == 4) {
+      return 'Gender';
+    } else if (depth == 5) {
+      return 'Athlete';
+    } else if (depth == 6) {
+      return 'Medal';
+    } else {
+      return 'Event';
     }
   }
 
-  function _chart(d3, width, height, x, root, up, xAxis, yAxis, down) {
+  function _chart(d3, width, height, x, root, up, xAxis, down) {
     const svg = d3
       .create('svg')
       .attr('viewBox', [0, 0, width, height])
@@ -252,17 +258,6 @@
       .on('click', (event, d) => up(svg, d));
 
     svg.append('g').call(xAxis);
-
-    // Create separate y-axis labels for each layer
-    svg
-      .append('text')
-      .attr('class', 'y-axis-title')
-      .attr('text-anchor', 'middle')
-      .attr('transform', 'rotate(-90)')
-      .attr('x', -height / 2)
-      .attr('y', 20) // Adjust position as needed
-      .text(getYAxisTitleText(root.depth))
-      .style('font-size', '20px');
 
     down(svg, root);
 
@@ -456,6 +451,12 @@
 
   function _bar(marginTop, barStep, barPadding, marginLeft, x) {
     return function bar(svg, down, d, selector) {
+      let depth = 1;
+      let currentNode = d;
+      while (currentNode.parent) {
+        depth++;
+        currentNode = currentNode.parent;
+      }
       const g = svg
         .insert('g', selector)
         .attr('class', 'enter')
@@ -477,46 +478,46 @@
           let tooltipContent = '';
           if (d.depth === 1) {
             tooltipContent = `
-              Sport: ${d.data.name}`;
+                Sport: ${d.data.name}`;
           } else if (d.depth === 2) {
             tooltipContent = `
-              Sport: ${d.parent.data.name}<br>
-              Year: ${d.data.name}`;
+                Sport: ${d.parent.data.name}<br>
+                Year: ${d.data.name}`;
           } else if (d.depth === 3) {
             tooltipContent = `
-              Sport: ${d.parent.parent.data.name}<br>
-              Year: ${d.parent.data.name}<br>
-              Country: ${d.data.name}`;
+                Sport: ${d.parent.parent.data.name}<br>
+                Year: ${d.parent.data.name}<br>
+                Country: ${d.data.name}`;
           } else if (d.depth === 4) {
             tooltipContent = `
-              Sport: ${d.parent.parent.parent.data.name}<br>
-              Year: ${d.parent.parent.data.name}<br>
-              Country: ${d.parent.data.name}<br>
-              Gender: ${d.data.name}`;
+                Sport: ${d.parent.parent.parent.data.name}<br>
+                Year: ${d.parent.parent.data.name}<br>
+                Country: ${d.parent.data.name}<br>
+                Gender: ${d.data.name}`;
           } else if (d.depth === 5) {
             tooltipContent = `
-              Sport: ${d.parent.parent.parent.parent.data.name}<br>
-              Year: ${d.parent.parent.parent.data.name}<br>
-              Country: ${d.parent.parent.data.name}<br>
-              Gender: ${d.parent.data.name}<br>
-              Athlete: ${d.data.name}`;
+                Sport: ${d.parent.parent.parent.parent.data.name}<br>
+                Year: ${d.parent.parent.parent.data.name}<br>
+                Country: ${d.parent.parent.data.name}<br>
+                Gender: ${d.parent.data.name}<br>
+                Athlete: ${d.data.name}`;
           } else if (d.depth === 6) {
             tooltipContent = `
-              Sport: ${d.parent.parent.parent.parent.parent.data.name}<br>
-              Year: ${d.parent.parent.parent.parent.data.name}<br>
-              Country: ${d.parent.parent.parent.data.name}<br>
-              Gender: ${d.parent.parent.data.name}<br>
-              Athlete: ${d.parent.data.name}<br>
-              Medal: ${d.data.name}`;
+                Sport: ${d.parent.parent.parent.parent.parent.data.name}<br>
+                Year: ${d.parent.parent.parent.parent.data.name}<br>
+                Country: ${d.parent.parent.parent.data.name}<br>
+                Gender: ${d.parent.parent.data.name}<br>
+                Athlete: ${d.parent.data.name}<br>
+                Medal: ${d.data.name}`;
           } else {
             tooltipContent = `
-              Sport: ${d.parent.parent.parent.parent.parent.parent.data.name}<br>
-              Year: ${d.parent.parent.parent.parent.parent.data.name}<br>
-              Country: ${d.parent.parent.parent.parent.data.name}<br>
-              Gender: ${d.parent.parent.parent.data.name}<br>
-              Athlete: ${d.parent.parent.data.name}<br>
-              Medal: ${d.parent.data.name}<br>
-              Event: ${d.data.name}`;
+                Sport: ${d.parent.parent.parent.parent.parent.parent.data.name}<br>
+                Year: ${d.parent.parent.parent.parent.parent.data.name}<br>
+                Country: ${d.parent.parent.parent.parent.data.name}<br>
+                Gender: ${d.parent.parent.parent.data.name}<br>
+                Athlete: ${d.parent.parent.data.name}<br>
+                Medal: ${d.parent.data.name}<br>
+                Event: ${d.data.name}`;
           }
 
           tooltip.innerHTML = tooltipContent;
@@ -558,6 +559,17 @@
         .attr('width', (d) => x(d.value))
         .attr('height', barStep * (1 - barPadding))
         .attr('fill', (d) => (d === hoveredBar ? 'red' : '#66BD48'));
+
+      const yAxisText = g
+        .append('text')
+        .attr('class', 'bar-axis')
+        .attr('x', marginLeft - 530) // Adjust x position as needed
+        .attr('y', 30) // Set it at the top of the chart
+        .attr('dy', '.35em')
+        .attr('font-size', '20px')
+        .style('text-anchor', 'middle')
+        .attr('transform', 'rotate(-90)')
+        .text(() => getYAxisTitleText(depth));
 
       return g;
     };
