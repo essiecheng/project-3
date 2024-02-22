@@ -153,11 +153,11 @@
   // Create chart
   function createChart(data) {
     const width = 1500;
-    const height = 890;
+    const height = 900;
     const marginTop = 50;
-    const marginRight = 30;
+    const marginRight = 40;
     const marginBottom = 0;
-    const marginLeft = 150;
+    const marginLeft = 190;
     const barStep = 27;
 
     const root = _root(d3, data);
@@ -526,10 +526,16 @@
           tooltip.style.opacity = 1;
         })
         .on('mousemove', function (event) {
-          // Position tooltip relative to the mouse cursor
+          // Position tooltip
           const tooltip = document.querySelector('.tooltip');
-          tooltip.style.left = event.pageX + 'px';
-          tooltip.style.top = event.pageY - window.scrollY + 'px';
+          const chartContainer = document.querySelector('#chart-container');
+
+          const containerRect = chartContainer.getBoundingClientRect();
+          const offsetX = event.pageX - containerRect.left;
+          const offsetY = event.pageY - containerRect.top - window.scrollY;
+
+          tooltip.style.left = offsetX + 'px';
+          tooltip.style.top = offsetY + 'px';
         })
         .on('mouseleave', function () {
           handleBarMouseLeave(this);
@@ -546,7 +552,7 @@
         .attr('y', (barStep * (1 - barPadding)) / 2)
         .attr('dy', '.35em')
         .attr('font-family', 'serif')
-        .style('font-size', '13px')
+        .style('font-size', '14px')
         .text((d) => d.data.name);
 
       bars
@@ -649,12 +655,14 @@
     background-image: url('https://1000logos.net/wp-content/uploads/2021/03/Olympics-logo.png');
     background-size: 20%;
     background-repeat: no-repeat;
-    background-position: bottom right;
+    background-position: 95% 90%;
     width: 100%;
+    max-width: 1200px;
     height: 100%;
     position: relative;
     border: 2px solid transparent;
     box-sizing: border-box;
+    margin: 0 auto;
   }
 
   #chart-container::before {
