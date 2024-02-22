@@ -646,7 +646,7 @@
   }
 
   #chart-container {
-    background-image: url('logo.png');
+    background-image: url('https://1000logos.net/wp-content/uploads/2021/03/Olympics-logo.png');
     background-size: 20%;
     background-repeat: no-repeat;
     background-position: bottom right;
