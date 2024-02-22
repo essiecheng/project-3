@@ -15,6 +15,7 @@
     const parsed = Papa.parse(csv, { header: true });
     const data = { name: 'olympic', children: [] };
 
+    // Clean data
     parsed.data.forEach((entry) => {
       let hasNaN = false;
       for (let key in entry) {
@@ -34,6 +35,7 @@
       const medal = entry.Medal;
       const event = entry.Event;
 
+      // Define hierarchy
       let sportNode = data.children.find((y) => y.name === sport);
       if (!sportNode) {
         sportNode = { name: sport, children: [] };
@@ -66,6 +68,7 @@
 
       // Group by medal type
       let medalType;
+
       if (medal === 'Gold') {
         medalType = 'Gold';
       } else if (medal === 'Silver') {
@@ -74,7 +77,7 @@
         medalType = 'Bronze';
       }
 
-      // Find or create the medal type node
+      // Continue defining hierarchy
       let medalNode = athleteNode.children.find((m) => m.name === medalType);
       if (!medalNode) {
         medalNode = { name: medalType, children: [] };
@@ -92,24 +95,19 @@
     return data;
   }
 
+  // Query filter function for Medal
   function queryData() {
-    let filteredData = JSON.parse(JSON.stringify(data)); // Clone original data
+    let filteredData = JSON.parse(JSON.stringify(data));
 
-    // Filter out gold medals if the corresponding checkbox is unchecked
     if (!gold) {
       filteredData = filterMedal(filteredData, 'Gold');
     }
-
-    // Filter out silver medals if the corresponding checkbox is unchecked
     if (!silver) {
       filteredData = filterMedal(filteredData, 'Silver');
     }
-
-    // Filter out bronze medals if the corresponding checkbox is unchecked
     if (!bronze) {
       filteredData = filterMedal(filteredData, 'Bronze');
     }
-
     return filteredData;
   }
 
@@ -138,20 +136,21 @@
     };
   }
 
+  // Update chart with queried data
   function updateChart() {
     const filteredData = queryData();
-    svg.remove(); // Remove existing chart
-    createChart(filteredData); // Create chart with filtered data
+    svg.remove();
+    createChart(filteredData);
   }
 
   let svg;
-  let y; // Define y scale
 
   onMount(async () => {
-    data = await convertCsvToJson(); // Await the JSON data
+    data = await convertCsvToJson();
     createChart(data);
   });
 
+  // Create chart
   function createChart(data) {
     const width = 1500;
     const height = 890;
@@ -165,10 +164,7 @@
     const color = _color(d3);
 
     const x = _x(d3, marginLeft, width, marginRight);
-    const y = d3.scaleBand().range([0, height]).padding(_barPadding(barStep));
-
     const xAxis = _xAxis(marginTop, d3, x, width);
-    const yAxis = _yAxis(marginLeft, marginTop, height, marginBottom);
 
     const stack = _stack(x, barStep);
     const stagger = _stagger(x, barStep);
@@ -204,7 +200,6 @@
         barStep
       ),
       xAxis,
-      yAxis,
       _down(
         d3,
         duration,
@@ -221,17 +216,27 @@
     document.querySelector('#chart-container').appendChild(svg);
   }
 
+  // Helper function to label y-axis for each layer
   function getYAxisTitleText(depth) {
-    if (depth == 0) {
+    if (depth == 1) {
       return 'Sport';
-    } else if (depth == 1) {
-      return 'Year';
     } else if (depth == 2) {
-      return '3';
+      return 'Year';
+    } else if (depth == 3) {
+      return 'Country';
+    } else if (depth == 4) {
+      return 'Gender';
+    } else if (depth == 5) {
+      return 'Athlete';
+    } else if (depth == 6) {
+      return 'Medal';
+    } else {
+      return 'Event';
     }
   }
 
-  function _chart(d3, width, height, x, root, up, xAxis, yAxis, down) {
+  // Chart
+  function _chart(d3, width, height, x, root, up, xAxis, down) {
     const svg = d3
       .create('svg')
       .attr('viewBox', [0, 0, width, height])
@@ -241,6 +246,7 @@
 
     x.domain([0, root.value]);
 
+    // Move up the layer when we click the background
     svg
       .append('rect')
       .attr('class', 'background')
@@ -253,32 +259,23 @@
 
     svg.append('g').call(xAxis);
 
-    // Create separate y-axis labels for each layer
-    svg
-      .append('text')
-      .attr('class', 'y-axis-title')
-      .attr('text-anchor', 'middle')
-      .attr('transform', 'rotate(-90)')
-      .attr('x', -height / 2)
-      .attr('y', 20) // Adjust position as needed
-      .text(getYAxisTitleText(root.depth))
-      .style('font-size', '20px');
-
     down(svg, root);
 
+    // Label x-axis
     svg
       .append('text')
       .attr('class', 'x-axis-title')
       .attr('text-anchor', 'middle')
       .attr('x', width / 2)
-      .attr('y', height / 35) // Adjust position as needed
-      .text('# Count') //Medals Won (🥇 + 🥈 + 🥉)
+      .attr('y', height / 50)
+      .text('Medal Count')
       .style('font-size', '20px')
-      .style('font-family', 'Arial');
+      .style('font-family', 'serif');
 
     return svg.node();
   }
 
+  // Down
   function _down(d3, duration, bar, stack, stagger, x, xAxis, barStep, color) {
     return function down(svg, d) {
       if (!d.children || d3.active(svg.node())) return;
@@ -323,6 +320,7 @@
     };
   }
 
+  // Up
   function _up(
     duration,
     x,
@@ -384,6 +382,7 @@
     };
   }
 
+  // Stack
   function _stack(x, barStep) {
     return function stack(i) {
       let value = 0;
@@ -395,6 +394,7 @@
     };
   }
 
+  // Root
   function _root(d3, data) {
     return d3
       .hierarchy(data)
@@ -418,44 +418,40 @@
         .call(d3.axisTop(x).ticks(width / 80, 's'))
         .call((g) =>
           (g.selection ? g.selection() : g).select('.domain').remove()
-        );
+        )
+        .style('font-family', 'serif')
+        .style('font-size', '13px');
   }
 
-  function _yAxis(marginLeft, marginTop, height, marginBottom) {
-    return (g) =>
-      g
-        .attr('class', 'y-axis')
-        .attr('transform', `translate(${marginLeft + 0.5},0)`)
-        .call((g) =>
-          g
-            .append('line')
-            .attr('stroke', 'currentColor')
-            .attr('y1', marginTop)
-            .attr('y2', height - marginBottom)
-        );
-  }
-
+  // Set the color of the bar
   function _color(d3) {
     return d3.scaleOrdinal([true, false], ['#66BD48', '#66BD48']);
   }
 
+  // Highlight when hovered
   let hoveredBar = null;
-
   function handleBarHover(bar) {
     hoveredBar = bar;
-    // Change fill color when hovered
-    d3.select(bar).select('rect').attr('fill', 'red');
+    d3.select(bar).select('rect').attr('fill', 'orange');
   }
 
-  // Function to handle mouseleave event on bars
+  // Unhighlight when mouse leaves
   function handleBarMouseLeave(bar) {
     hoveredBar = null;
-    // Restore fill color when mouse leaves
     d3.select(bar).select('rect').attr('fill', '#66BD48');
   }
 
+  // Add features to the bars
   function _bar(marginTop, barStep, barPadding, marginLeft, x) {
     return function bar(svg, down, d, selector) {
+      // track the depth of each layer
+      let depth = 1;
+      let currentNode = d;
+      while (currentNode.parent) {
+        depth++;
+        currentNode = currentNode.parent;
+      }
+
       const g = svg
         .insert('g', selector)
         .attr('class', 'enter')
@@ -472,34 +468,40 @@
         .on('click', (event, d) => down(svg, d))
         .on('mouseover', function (event, d) {
           handleBarHover(this);
+
           // Show tooltip on mouseover
           const tooltip = document.querySelector('.tooltip');
           let tooltipContent = '';
           if (d.depth === 1) {
             tooltipContent = `
-                Sport: ${d.data.name}`;
+                Sport: ${d.data.name}<br>
+                Medal Count: ${d.value}`;
           } else if (d.depth === 2) {
             tooltipContent = `
                 Sport: ${d.parent.data.name}<br>
-                Year: ${d.data.name}`;
+                Year: ${d.data.name}<br>
+                Medal Count: ${d.value}`;
           } else if (d.depth === 3) {
             tooltipContent = `
                 Sport: ${d.parent.parent.data.name}<br>
                 Year: ${d.parent.data.name}<br>
-                Country: ${d.data.name}`;
+                Country: ${d.data.name}<br>
+                Medal Count: ${d.value}`;
           } else if (d.depth === 4) {
             tooltipContent = `
                 Sport: ${d.parent.parent.parent.data.name}<br>
                 Year: ${d.parent.parent.data.name}<br>
                 Country: ${d.parent.data.name}<br>
-                Gender: ${d.data.name}`;
+                Gender: ${d.data.name}<br>
+                Medal Count: ${d.value}`;
           } else if (d.depth === 5) {
             tooltipContent = `
                 Sport: ${d.parent.parent.parent.parent.data.name}<br>
                 Year: ${d.parent.parent.parent.data.name}<br>
                 Country: ${d.parent.parent.data.name}<br>
                 Gender: ${d.parent.data.name}<br>
-                Athlete: ${d.data.name}`;
+                Athlete: ${d.data.name}<br>
+                Medal Count: ${d.value}`;
           } else if (d.depth === 6) {
             tooltipContent = `
                 Sport: ${d.parent.parent.parent.parent.parent.data.name}<br>
@@ -507,7 +509,8 @@
                 Country: ${d.parent.parent.parent.data.name}<br>
                 Gender: ${d.parent.parent.data.name}<br>
                 Athlete: ${d.parent.data.name}<br>
-                Medal: ${d.data.name}`;
+                Medal: ${d.data.name}<br>
+                Medal Count: ${d.value}`;
           } else {
             tooltipContent = `
                 Sport: ${d.parent.parent.parent.parent.parent.parent.data.name}<br>
@@ -530,26 +533,20 @@
         })
         .on('mouseleave', function () {
           handleBarMouseLeave(this);
-          // Hide tooltip on mouseleave
+          // Hide tooltip on when the mouse leaves
           const tooltip = document.querySelector('.tooltip');
           tooltip.style.opacity = 0;
         });
 
-      bars
-        .append('text')
-        .attr('class', 'bar-value')
-        .attr('x', (d) => x(d.value) + 5) // Position it at the end of each bar
-        .attr('y', (barStep * (1 - barPadding)) / 2)
-        .attr('dy', '.35em')
-        .attr('text-anchor', 'start')
-        .text((d) => d.value);
-
+      // Label each bar
       bars
         .append('text')
         .attr('class', 'bar-label')
         .attr('x', marginLeft - 6)
         .attr('y', (barStep * (1 - barPadding)) / 2)
         .attr('dy', '.35em')
+        .attr('font-family', 'serif')
+        .style('font-size', '13px')
         .text((d) => d.data.name);
 
       bars
@@ -559,10 +556,24 @@
         .attr('height', barStep * (1 - barPadding))
         .attr('fill', (d) => (d === hoveredBar ? 'red' : '#66BD48'));
 
+      // Update y-axis for each layer
+      const yAxisText = g
+        .append('text')
+        .attr('class', 'bar-axis')
+        .attr('x', marginLeft - 530)
+        .attr('y', 30)
+        .attr('dy', '.35em')
+        .attr('font-size', '20px')
+        .attr('font-family', 'serif')
+        .style('text-anchor', 'middle')
+        .attr('transform', 'rotate(-90)')
+        .text(() => getYAxisTitleText(depth));
+
       return g;
     };
   }
 
+  // Stagger
   function _stagger(x, barStep) {
     return function stagger() {
       let value = 0;
@@ -574,36 +585,51 @@
     };
   }
 
+  // Bar padding
   function _barPadding(barStep) {
     return 3 / barStep;
   }
 
+  // Duration
   function _duration() {
     return 750;
   }
 </script>
 
 <main>
-  <h1>Medals and Memories: Charting Olympic Greatness</h1>
-  <h3>
-    This chart contains information about medals won for each sport, year,
-    country, and gender, between the period of 1976-2008 in the Summer Olympics.
-  </h3>
-  <p>Click a blue bar to drill down and click the background to go back up.</p>
+  <div class="banner">
+    <h1>Medals and Memories: Charting Olympic Greatness</h1>
+    <h3>
+      This chart contains information about medals won for each sport, year,
+      country, gender, and event between the period of 1976-2008 in the Summer
+      Olympics.
+    </h3>
+    <div class="link">
+      <p>Click a bar to drill down and click the background to go back up.</p>
+      <a
+        href="https://docs.google.com/document/d/1yUMUHjXo-1xp1h4csNjPcgE3yqoF7W3_jrWIG0RTXgM/edit?usp=sharing"
+      >
+        Project Write-Up</a
+      >
+    </div>
+  </div>
   <script
     src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.0/papaparse.min.js"
   ></script>
   <div id="chart-container" style="width: 100%; height: 100;">
     <div class="tooltip" style="opacity: 0;"></div>
     <div>
-      <label>
+      <label class="gold-label">
         <input type="checkbox" bind:checked={gold} on:change={updateChart} /> Gold
+        🥇
       </label>
-      <label>
+      <label class="silver-label">
         <input type="checkbox" bind:checked={silver} on:change={updateChart} /> Silver
+        🥈
       </label>
-      <label>
+      <label class="bronze-label">
         <input type="checkbox" bind:checked={bronze} on:change={updateChart} /> Bronze
+        🥉
       </label>
     </div>
   </div>
@@ -621,35 +647,94 @@
 
   #chart-container {
     background-image: url('logo.png');
-    background-size: 37% 45%; /* Ensure the image covers the entire container */
+    background-size: 20%;
     background-repeat: no-repeat;
     background-position: bottom right;
     width: 100%;
     height: 100%;
     position: relative;
-    border: 1px solid #000;
+    border: 2px solid transparent;
     box-sizing: border-box;
   }
 
+  #chart-container::before {
+    content: '';
+    position: absolute;
+    top: -4px;
+    left: -2px;
+    right: -2px;
+    bottom: -2px;
+    border: 5px solid;
+    border-image: linear-gradient(
+      to bottom right,
+      #0081c8,
+      #fcb131,
+      #00a651,
+      #ee334e
+    );
+    border-image-slice: 1;
+    z-index: -1;
+  }
+
   h1 {
-    /* font-family: 'Oswald'; */
-    font-size: 78px;
-    font-weight: 500;
+    font-size: 43px;
+    font-weight: 500, 'bold';
     text-transform: uppercase;
     line-height: 1;
+    text-align: center;
+    font-family: 'verdana';
   }
 
   h3 {
-    font-family: 'Arial';
-    letter-spacing: 0.55px;
+    font-family: 'verdana';
+    text-align: center;
     font-size: 20px;
     line-height: 28px;
   }
 
   p {
-    font-family: 'Arial', sans-serif;
+    font-family: 'verdana';
     letter-spacing: 0.55px;
     font-size: 16px;
     line-height: 28px;
+    text-align: center;
+  }
+
+  .link {
+    text-align: center;
+    font-family: 'verdana';
+  }
+
+  .banner {
+    background-image: linear-gradient(
+      to bottom right,
+      rgba(0, 129, 200, 0.5),
+      rgba(252, 177, 49, 0.5),
+      rgba(0, 166, 81, 0.5),
+      rgba(238, 51, 78, 0.5)
+    );
+    padding: 20px;
+    margin-bottom: 20px;
+    border-radius: 10px;
+    color: black;
+  }
+  .gold-label {
+    background-color: gold;
+    padding: 5px 5px;
+    border-radius: 5px;
+  }
+  .silver-label {
+    background-color: silver;
+    padding: 5px 5px;
+    border-radius: 5px;
+  }
+  .bronze-label {
+    background-color: #cd7f32;
+    padding: 5px 5px;
+    border-radius: 5px;
+  }
+  #chart-container div {
+    margin-top: 20px;
+    margin-left: 10px;
   }
 </style>
